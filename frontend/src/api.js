@@ -23,3 +23,17 @@ async function request(path, options = {}) {
 export function getProjects() {
   return request('/projects')
 }
+
+export function createProject(payload) {
+  return request('/projects', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function createActivity(projectId, payload) {
+  return request(`/projects/${projectId}/activities`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}

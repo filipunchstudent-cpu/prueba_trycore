@@ -25,6 +25,34 @@ button:hover {
   background: #195cc5;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+input,
+select {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #172033;
+  font: inherit;
+  padding: 0.7rem 0.75rem;
+}
+
+input:focus,
+select:focus {
+  border-color: #1f6feb;
+  outline: 3px solid #dceafe;
+}
+
+label {
+  color: #344056;
+  display: grid;
+  font-size: 0.9rem;
+  font-weight: 700;
+  gap: 0.35rem;
+}
+
 .page {
   margin: 0 auto;
   max-width: 1180px;
@@ -56,6 +84,43 @@ p {
 h1 {
   font-size: 2rem;
   margin-bottom: 0;
+}
+
+.forms {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr 2fr;
+  margin-bottom: 1.5rem;
+}
+
+.panel {
+  background: white;
+  border: 1px solid #dce3ef;
+  border-radius: 8px;
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.panel h2 {
+  margin-bottom: 0;
+}
+
+.field-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.field-grid label {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.field-grid input {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .project-list {
@@ -171,6 +236,11 @@ th {
   .project-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .forms,
+  .field-grid {
+    grid-template-columns: 1fr;
   }
 
   .metrics {

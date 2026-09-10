@@ -1,11 +1,26 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 
-import { getProjects } from './api'
+import { createActivity, createProject, getProjects } from './api'
 
 const projects = ref([])
 const loading = ref(true)
+const savingProject = ref(false)
+const savingActivity = ref(false)
 const error = ref('')
+
+const projectForm = reactive({
+  name: '',
+})
+
+const activityForm = reactive({
+  projectId: '',
+  name: '',
+  bac: '',
+  planned_percent: '',
+  actual_percent: '',
+  ac: '',
+})
 
 async function loadProjects() {
   loading.value = true
@@ -13,10 +28,70 @@ async function loadProjects() {
 
   try {
     projects.value = await getProjects()
+
+    if (!activityForm.projectId && projects.value.length > 0) {
+      activityForm.projectId = String(projects.value[0].id)
+    }
   } catch {
     error.value = 'No pude cargar los proyectos. Revisa que el backend esté encendido.'
   } finally {
     loading.value = false
+  }
+}
+
+async function submitProject() {
+  if (!projectForm.name.trim()) {
+    error.value = 'El nombre del proyecto es obligatorio.'
+    return
+  }
+
+  savingProject.value = true
+  error.value = ''
+
+  try {
+    const created = await createProject({
+      name: projectForm.name.trim(),
+    })
+
+    projectForm.name = ''
+    activityForm.projectId = String(created.id)
+    await loadProjects()
+  } catch {
+    error.value = 'No pude crear el proyecto.'
+  } finally {
+    savingProject.value = false
+  }
+}
+
+async function submitActivity() {
+  if (!activityForm.projectId) {
+    error.value = 'Primero crea o selecciona un proyecto.'
+    return
+  }
+
+  savingActivity.value = true
+  error.value = ''
+
+  try {
+    await createActivity(activityForm.projectId, {
+      name: activityForm.name.trim(),
+      bac: activityForm.bac,
+      planned_percent: activityForm.planned_percent,
+      actual_percent: activityForm.actual_percent,
+      ac: activityForm.ac,
+    })
+
+    activityForm.name = ''
+    activityForm.bac = ''
+    activityForm.planned_percent = ''
+    activityForm.actual_percent = ''
+    activityForm.ac = ''
+
+    await loadProjects()
+  } catch {
+    error.value = 'No pude crear la actividad. Revisa los datos ingresados.'
+  } finally {
+    savingActivity.value = false
   }
 }
 
@@ -32,6 +107,66 @@ onMounted(loadProjects)
       </div>
 
       <button type="button" @click="loadProjects">Actualizar</button>
+    </section>
+
+    <section class="forms">
+      <form class="panel" @submit.prevent="submitProject">
+        <h2>Nuevo proyecto</h2>
+
+        <label>
+          Nombre
+          <input v-model="projectForm.name" type="text" placeholder="Proyecto demo EVM" />
+        </label>
+
+        <button type="submit" :disabled="savingProject">
+          {{ savingProject ? 'Guardando...' : 'Crear proyecto' }}
+        </button>
+      </form>
+
+      <form class="panel" @submit.prevent="submitActivity">
+        <h2>Nueva actividad</h2>
+
+        <label>
+          Proyecto
+          <select v-model="activityForm.projectId">
+            <option value="">Selecciona un proyecto</option>
+            <option v-for="project in projects" :key="project.id" :value="String(project.id)">
+              {{ project.name }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Nombre
+          <input v-model="activityForm.name" type="text" placeholder="Desarrollo" />
+        </label>
+
+        <div class="field-grid">
+          <label>
+            BAC
+            <input v-model="activityForm.bac" type="number" min="0" step="0.01" />
+          </label>
+
+          <label>
+            Planeado %
+            <input v-model="activityForm.planned_percent" type="number" min="0" max="100" step="0.01" />
+          </label>
+
+          <label>
+            Real %
+            <input v-model="activityForm.actual_percent" type="number" min="0" max="100" step="0.01" />
+          </label>
+
+          <label>
+            AC
+            <input v-model="activityForm.ac" type="number" min="0" step="0.01" />
+          </label>
+        </div>
+
+        <button type="submit" :disabled="savingActivity">
+          {{ savingActivity ? 'Guardando...' : 'Crear actividad' }}
+        </button>
+      </form>
     </section>
 
     <p v-if="loading" class="message">Cargando proyectos...</p>
