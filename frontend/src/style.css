@@ -252,3 +252,33 @@ th {
     overflow-x: auto;
   }
 }
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.secondary {
+  background: #e8eef9;
+  color: #315c9f;
+}
+
+.secondary:hover {
+  background: #d7e2f5;
+}
+
+.danger {
+  background: #dc2626;
+}
+
+.danger:hover {
+  background: #b91c1c;
+}

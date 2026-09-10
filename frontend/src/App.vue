@@ -1,13 +1,22 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 
-import { createActivity, createProject, getProjects } from './api'
+import {
+  createActivity,
+  createProject,
+  deleteActivity,
+  deleteProject,
+  getProjects,
+  updateActivity,
+} from './api'
 
 const projects = ref([])
 const loading = ref(true)
 const savingProject = ref(false)
 const savingActivity = ref(false)
+const deletingId = ref('')
 const error = ref('')
+const editingActivityId = ref(null)
 
 const projectForm = reactive({
   name: '',
@@ -37,6 +46,15 @@ async function loadProjects() {
   } finally {
     loading.value = false
   }
+}
+
+function resetActivityForm() {
+  editingActivityId.value = null
+  activityForm.name = ''
+  activityForm.bac = ''
+  activityForm.planned_percent = ''
+  activityForm.actual_percent = ''
+  activityForm.ac = ''
 }
 
 async function submitProject() {
@@ -72,26 +90,65 @@ async function submitActivity() {
   savingActivity.value = true
   error.value = ''
 
+  const payload = {
+    name: activityForm.name.trim(),
+    bac: activityForm.bac,
+    planned_percent: activityForm.planned_percent,
+    actual_percent: activityForm.actual_percent,
+    ac: activityForm.ac,
+  }
+
   try {
-    await createActivity(activityForm.projectId, {
-      name: activityForm.name.trim(),
-      bac: activityForm.bac,
-      planned_percent: activityForm.planned_percent,
-      actual_percent: activityForm.actual_percent,
-      ac: activityForm.ac,
-    })
+    if (editingActivityId.value) {
+      await updateActivity(activityForm.projectId, editingActivityId.value, payload)
+    } else {
+      await createActivity(activityForm.projectId, payload)
+    }
 
-    activityForm.name = ''
-    activityForm.bac = ''
-    activityForm.planned_percent = ''
-    activityForm.actual_percent = ''
-    activityForm.ac = ''
-
+    resetActivityForm()
     await loadProjects()
   } catch {
-    error.value = 'No pude crear la actividad. Revisa los datos ingresados.'
+    error.value = 'No pude guardar la actividad. Revisa los datos ingresados.'
   } finally {
     savingActivity.value = false
+  }
+}
+
+function startEditActivity(projectId, activity) {
+  editingActivityId.value = activity.id
+  activityForm.projectId = String(projectId)
+  activityForm.name = activity.name
+  activityForm.bac = activity.bac
+  activityForm.planned_percent = activity.planned_percent
+  activityForm.actual_percent = activity.actual_percent
+  activityForm.ac = activity.ac
+}
+
+async function removeActivity(projectId, activityId) {
+  deletingId.value = `activity-${activityId}`
+  error.value = ''
+
+  try {
+    await deleteActivity(projectId, activityId)
+    await loadProjects()
+  } catch {
+    error.value = 'No pude eliminar la actividad.'
+  } finally {
+    deletingId.value = ''
+  }
+}
+
+async function removeProject(projectId) {
+  deletingId.value = `project-${projectId}`
+  error.value = ''
+
+  try {
+    await deleteProject(projectId)
+    await loadProjects()
+  } catch {
+    error.value = 'No pude eliminar el proyecto.'
+  } finally {
+    deletingId.value = ''
   }
 }
 
@@ -124,7 +181,7 @@ onMounted(loadProjects)
       </form>
 
       <form class="panel" @submit.prevent="submitActivity">
-        <h2>Nueva actividad</h2>
+        <h2>{{ editingActivityId ? 'Editar actividad' : 'Nueva actividad' }}</h2>
 
         <label>
           Proyecto
@@ -163,9 +220,20 @@ onMounted(loadProjects)
           </label>
         </div>
 
-        <button type="submit" :disabled="savingActivity">
-          {{ savingActivity ? 'Guardando...' : 'Crear actividad' }}
-        </button>
+        <div class="actions">
+          <button type="submit" :disabled="savingActivity">
+            {{ savingActivity ? 'Guardando...' : editingActivityId ? 'Actualizar actividad' : 'Crear actividad' }}
+          </button>
+
+          <button
+            v-if="editingActivityId"
+            class="secondary"
+            type="button"
+            @click="resetActivityForm"
+          >
+            Cancelar edición
+          </button>
+        </div>
       </form>
     </section>
 
@@ -180,9 +248,20 @@ onMounted(loadProjects)
             <p>{{ project.activities.length }} actividades</p>
           </div>
 
-          <span class="status" :class="project.metrics.cost_status">
-            {{ project.metrics.cost_status }}
-          </span>
+          <div class="actions">
+            <span class="status" :class="project.metrics.cost_status">
+              {{ project.metrics.cost_status }}
+            </span>
+
+            <button
+              class="danger"
+              type="button"
+              :disabled="deletingId === `project-${project.id}`"
+              @click="removeProject(project.id)"
+            >
+              Eliminar
+            </button>
+          </div>
         </div>
 
         <div class="metrics">
@@ -222,6 +301,7 @@ onMounted(loadProjects)
               <th>AC</th>
               <th>EV</th>
               <th>PV</th>
+              <th>Acciones</th>
             </tr>
           </thead>
 
@@ -234,6 +314,26 @@ onMounted(loadProjects)
               <td>{{ activity.ac }}</td>
               <td>{{ activity.metrics.ev }}</td>
               <td>{{ activity.metrics.pv }}</td>
+              <td>
+                <div class="table-actions">
+                  <button
+                    class="secondary"
+                    type="button"
+                    @click="startEditActivity(project.id, activity)"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    class="danger"
+                    type="button"
+                    :disabled="deletingId === `activity-${activity.id}`"
+                    @click="removeActivity(project.id, activity.id)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
