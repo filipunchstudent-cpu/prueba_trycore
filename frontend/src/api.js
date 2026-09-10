@@ -31,9 +31,35 @@ export function createProject(payload) {
   })
 }
 
+export function updateProject(projectId, payload) {
+  return request(`/projects/${projectId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteProject(projectId) {
+  return request(`/projects/${projectId}`, {
+    method: 'DELETE',
+  })
+}
+
 export function createActivity(projectId, payload) {
   return request(`/projects/${projectId}/activities`, {
     method: 'POST',
     body: JSON.stringify(payload),
+  })
+}
+
+export function updateActivity(projectId, activityId, payload) {
+  return request(`/projects/${projectId}/activities/${activityId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteActivity(projectId, activityId) {
+  return request(`/projects/${projectId}/activities/${activityId}`, {
+    method: 'DELETE',
   })
 }
