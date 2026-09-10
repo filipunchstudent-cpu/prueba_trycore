@@ -5,7 +5,7 @@ El proyecto permite administrar proyectos y actividades usando Valor Ganado. Cad
 
 ## Arquitectura
 
-La aplicación está separada en backend y frontend.
+La aplicación está separada en backend y frontend (arquitectura monorepo).
 El backend está hecho con FastAPI. Expone endpoints REST para proyectos y actividades. La lógica de negocio está en `backend/app/services/evm.py`, separada de los endpoints.
 El frontend está hecho con Vue 3. Consume la API y muestra un dashboard con métricas, tabla de actividades, formularios y una gráfica simple de PV, EV y AC.
 La base de datos usa SQLAlchemy. En desarrollo se usa SQLite porque es fácil de ejecutar localmente, pero la conexión se configura con `DATABASE_URL`, así que se puede cambiar a PostgreSQL.

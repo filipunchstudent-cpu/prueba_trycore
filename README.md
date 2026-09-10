@@ -9,7 +9,7 @@ Aplicación web para administrar proyectos y actividades usando métricas de Val
 - **Base de datos local:** SQLite
 - **Contenedores:** Docker y Docker Compose
 - **Pruebas:** Pytest
-- **Terminal, Git, pytest, pytest-cov, Ruff, Vitest, ESLint y Docker:** herramientas de implementación y verificación. Una respuesta de IA se aceptó solo después de comprobar código, resultados o documentación cuando correspondía.
+- **Terminal, Git, pytest, pytest-cov, Ruff, Vitest, ESLint y Docker:** herramientas de implementación y verificación.
 
 
 ## Métricas implementadas

@@ -189,6 +189,7 @@ La conclusión a la que llegué es que la distinción fundamental es que PV repr
 ## Una decision de arquitectura que tomé de manera independiente
 
 * Decidí hacer una arquitectura monorepo porque ya he trabajado esta arquitectura para proyectos pequeños como este, esta arquitectura facilita cambios coordinados entre frontend y backend, podemos hacer CI/CD centralizado versionamiento conjunto entre otros
+* Decidí hacer uso de vue, debido a que ya tengo manejo y adicional hay páginas en internet con bibliotecas ya robusta que facilita la integración de componentes mediante widgets ya realizados por la comunidad.
 
 ## Reflexión
 La IA fue útil para acelerar la estructura inicial y revisar alternativas, pero validé las fórmulas, ejecuté pruebas y ajusté el proyecto durante la implementación.
