@@ -282,3 +282,51 @@ th {
 .danger:hover {
   background: #b91c1c;
 }
+
+.chart {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 1.25rem;
+}
+
+.chart-row {
+  align-items: center;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 42px 1fr;
+}
+
+.chart-row span {
+  color: #5d6b82;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.chart-track {
+  background: #edf2f7;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.chart-bar {
+  border-radius: 6px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 800;
+  min-width: max-content;
+  padding: 0.45rem 0.6rem;
+  transition: width 0.2s ease;
+}
+
+.chart-bar.pv {
+  background: #315c9f;
+}
+
+.chart-bar.ev {
+  background: #1b7f3a;
+}
+
+.chart-bar.ac {
+  background: #b42318;
+}
+

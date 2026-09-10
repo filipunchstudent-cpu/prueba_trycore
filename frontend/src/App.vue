@@ -152,6 +152,33 @@ async function removeProject(projectId) {
   }
 }
 
+function metricNumber(value) {
+  if (value === null || value === undefined) {
+    return 0
+  }
+
+  return Number(value)
+}
+
+function chartRows(project) {
+  const rows = [
+    { label: 'PV', value: metricNumber(project.metrics.pv), className: 'pv' },
+    { label: 'EV', value: metricNumber(project.metrics.ev), className: 'ev' },
+    { label: 'AC', value: metricNumber(project.metrics.ac), className: 'ac' },
+  ]
+
+  const max = Math.max(...rows.map((row) => row.value), 1)
+
+  return rows.map((row) => ({
+    ...row,
+    width: `${Math.max((row.value / max) * 100, 2)}%`,
+  }))
+}
+
+
+
+
+
 onMounted(loadProjects)
 </script>
 
@@ -288,6 +315,28 @@ onMounted(loadProjects)
           <div>
             <span>SPI</span>
             <strong>{{ project.metrics.spi || 'N/A' }}</strong>
+          </div>
+        </div>
+
+        <div class="metrics"> </div>
+
+        <div class="chart" aria-label="Comparación PV EV AC">
+          <div
+            v-for="row in chartRows(project)"
+            :key="row.label"
+            class="chart-row"
+          >
+            <span>{{ row.label }}</span>
+
+            <div class="chart-track">
+              <div
+                class="chart-bar"
+                :class="row.className"
+                :style="{ width: row.width }"
+              >
+                {{ row.value.toLocaleString('es-CO') }}
+              </div>
+            </div>
           </div>
         </div>
 
