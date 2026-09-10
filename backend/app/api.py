@@ -12,7 +12,6 @@ from backend.app.schemas import (
 )
 from backend.app.services.evm import calculate_evm, consolidate_metrics
 
-
 router = APIRouter(prefix="/api")
 
 

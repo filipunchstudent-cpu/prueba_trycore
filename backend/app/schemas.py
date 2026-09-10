@@ -1,6 +1,17 @@
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+
+def format_money(value: Decimal) -> str:
+    return str(value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
+def format_index(value: Decimal | None) -> str | None:
+    if value is None:
+        return None
+
+    return str(value.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
 
 
 class ActivityCreate(BaseModel):
@@ -39,6 +50,17 @@ class MetricsResponse(BaseModel):
     schedule_status: str
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("bac", "pv", "ev", "ac", "cv", "sv", "eac", "vac")
+    def serialize_money(self, value: Decimal | None):
+        if value is None:
+            return None
+
+        return format_money(value)
+
+    @field_serializer("cpi", "spi")
+    def serialize_index(self, value: Decimal | None):
+        return format_index(value)
 
 
 class ActivityWithMetrics(Activity):

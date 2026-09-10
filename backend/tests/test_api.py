@@ -1,12 +1,10 @@
 from decimal import Decimal
 
+from backend.app.database import Base, get_db
+from backend.app.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-from backend.app.database import Base, get_db
-from backend.app.main import app
-
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test_evm.db"
 
@@ -60,9 +58,9 @@ def test_creates_project_with_empty_metrics():
     assert data["id"] == 1
     assert data["name"] == "Proyecto demo"
     assert data["activities"] == []
-    assert data["metrics"]["bac"] == "0"
-    assert data["metrics"]["pv"] == "0"
-    assert data["metrics"]["ev"] == "0"
+    assert data["metrics"]["bac"] == "0.00"
+    assert data["metrics"]["pv"] == "0.00"
+    assert data["metrics"]["ev"] == "0.00"
     assert data["metrics"]["cpi"] is None
     assert data["metrics"]["spi"] is None
 
@@ -91,12 +89,12 @@ def test_creates_activity_and_returns_evm_metrics():
     data = response.json()
 
     assert data["name"] == "Desarrollo"
-    assert str(round(float(data["metrics"]["pv"]))) == "2000"
-    assert str(round(float(data["metrics"]["ev"]))) == "1000"
-    assert str(round(float(data["metrics"]["cv"]))) == "-500"
-    assert str(round(float(data["metrics"]["sv"]))) == "-1000"
+    assert data["metrics"]["pv"] == "2000.00"
+    assert data["metrics"]["ev"] == "1000.00"
+    assert data["metrics"]["cv"] == "-500.00"
+    assert data["metrics"]["sv"] == "-1000.00"
     assert round(Decimal(data["metrics"]["cpi"]),4) ==round(Decimal("1000")/Decimal("1500"),4)
-    assert data["metrics"]["spi"] == "0.5"
+    assert data["metrics"]["spi"] == "0.5000"
 
 
 def test_gets_project_with_consolidated_metrics():
