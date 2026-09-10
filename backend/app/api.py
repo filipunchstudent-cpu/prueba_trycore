@@ -1,13 +1,12 @@
-from decimal import Decimal
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, HTTPException, status
-
+from backend.app.database import get_db
+from backend.app.models import ActivityModel, ProjectModel
 from backend.app.schemas import (
-    Activity,
     ActivityCreate,
     ActivityWithMetrics,
     MetricsResponse,
-    Project,
     ProjectCreate,
     ProjectWithMetrics,
 )
@@ -15,10 +14,6 @@ from backend.app.services.evm import calculate_evm, consolidate_metrics
 
 
 router = APIRouter(prefix="/api")
-
-projects: dict[int, Project] = {}
-next_project_id = 1
-next_activity_id = 1
 
 
 def _metrics_response(metrics) -> MetricsResponse:
@@ -38,7 +33,7 @@ def _metrics_response(metrics) -> MetricsResponse:
     )
 
 
-def _activity_with_metrics(activity: Activity) -> ActivityWithMetrics:
+def _activity_with_metrics(activity: ActivityModel) -> ActivityWithMetrics:
     metrics = calculate_evm(
         bac=activity.bac,
         planned_percent=activity.planned_percent,
@@ -47,12 +42,17 @@ def _activity_with_metrics(activity: Activity) -> ActivityWithMetrics:
     )
 
     return ActivityWithMetrics(
-        **activity.model_dump(),
+        id=activity.id,
+        name=activity.name,
+        bac=activity.bac,
+        planned_percent=activity.planned_percent,
+        actual_percent=activity.actual_percent,
+        ac=activity.ac,
         metrics=_metrics_response(metrics),
     )
 
 
-def _project_with_metrics(project: Project) -> ProjectWithMetrics:
+def _project_with_metrics(project: ProjectModel) -> ProjectWithMetrics:
     activities = [_activity_with_metrics(activity) for activity in project.activities]
     total = consolidate_metrics([activity.metrics for activity in activities])
 
@@ -64,8 +64,8 @@ def _project_with_metrics(project: Project) -> ProjectWithMetrics:
     )
 
 
-def _get_project(project_id: int) -> Project:
-    project = projects.get(project_id)
+def _get_project(db: Session, project_id: int) -> ProjectModel:
+    project = db.get(ProjectModel, project_id)
 
     if project is None:
         raise HTTPException(
@@ -76,34 +76,71 @@ def _get_project(project_id: int) -> Project:
     return project
 
 
+def _get_activity(
+    project: ProjectModel,
+    activity_id: int,
+) -> ActivityModel:
+    for activity in project.activities:
+        if activity.id == activity_id:
+            return activity
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Activity not found",
+    )
+
+
 @router.get("/health")
 def health_check():
     return {"status": "ok"}
 
 
 @router.post("/projects", response_model=ProjectWithMetrics, status_code=201)
-def create_project(payload: ProjectCreate):
-    global next_project_id
+def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
+    project = ProjectModel(name=payload.name)
 
-    project = Project(
-        id=next_project_id,
-        name=payload.name,
-        activities=[],
-    )
-    projects[project.id] = project
-    next_project_id += 1
+    db.add(project)
+    db.commit()
+    db.refresh(project)
 
     return _project_with_metrics(project)
 
 
 @router.get("/projects", response_model=list[ProjectWithMetrics])
-def list_projects():
-    return [_project_with_metrics(project) for project in projects.values()]
+def list_projects(db: Session = Depends(get_db)):
+    projects = db.query(ProjectModel).order_by(ProjectModel.id).all()
+
+    return [_project_with_metrics(project) for project in projects]
 
 
 @router.get("/projects/{project_id}", response_model=ProjectWithMetrics)
-def get_project(project_id: int):
-    return _project_with_metrics(_get_project(project_id))
+def get_project(project_id: int, db: Session = Depends(get_db)):
+    return _project_with_metrics(_get_project(db, project_id))
+
+
+@router.put("/projects/{project_id}", response_model=ProjectWithMetrics)
+def update_project(
+    project_id: int,
+    payload: ProjectCreate,
+    db: Session = Depends(get_db),
+):
+    project = _get_project(db, project_id)
+    project.name = payload.name
+
+    db.commit()
+    db.refresh(project)
+
+    return _project_with_metrics(project)
+
+
+@router.delete("/projects/{project_id}", status_code=204)
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    project = _get_project(db, project_id)
+
+    db.delete(project)
+    db.commit()
+
+    return None
 
 
 @router.post(
@@ -111,18 +148,25 @@ def get_project(project_id: int):
     response_model=ActivityWithMetrics,
     status_code=201,
 )
-def create_activity(project_id: int, payload: ActivityCreate):
-    global next_activity_id
+def create_activity(
+    project_id: int,
+    payload: ActivityCreate,
+    db: Session = Depends(get_db),
+):
+    project = _get_project(db, project_id)
 
-    project = _get_project(project_id)
-
-    activity = Activity(
-        id=next_activity_id,
-        **payload.model_dump(),
+    activity = ActivityModel(
+        project_id=project.id,
+        name=payload.name,
+        bac=payload.bac,
+        planned_percent=payload.planned_percent,
+        actual_percent=payload.actual_percent,
+        ac=payload.ac,
     )
 
-    project.activities.append(activity)
-    next_activity_id += 1
+    db.add(activity)
+    db.commit()
+    db.refresh(activity)
 
     return _activity_with_metrics(activity)
 
@@ -131,31 +175,37 @@ def create_activity(project_id: int, payload: ActivityCreate):
     "/projects/{project_id}/activities/{activity_id}",
     response_model=ActivityWithMetrics,
 )
-def update_activity(project_id: int, activity_id: int, payload: ActivityCreate):
-    project = _get_project(project_id)
+def update_activity(
+    project_id: int,
+    activity_id: int,
+    payload: ActivityCreate,
+    db: Session = Depends(get_db),
+):
+    project = _get_project(db, project_id)
+    activity = _get_activity(project, activity_id)
 
-    for index, activity in enumerate(project.activities):
-        if activity.id == activity_id:
-            updated = Activity(id=activity_id, **payload.model_dump())
-            project.activities[index] = updated
-            return _activity_with_metrics(updated)
+    activity.name = payload.name
+    activity.bac = payload.bac
+    activity.planned_percent = payload.planned_percent
+    activity.actual_percent = payload.actual_percent
+    activity.ac = payload.ac
 
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Activity not found",
-    )
+    db.commit()
+    db.refresh(activity)
+
+    return _activity_with_metrics(activity)
 
 
 @router.delete("/projects/{project_id}/activities/{activity_id}", status_code=204)
-def delete_activity(project_id: int, activity_id: int):
-    project = _get_project(project_id)
+def delete_activity(
+    project_id: int,
+    activity_id: int,
+    db: Session = Depends(get_db),
+):
+    project = _get_project(db, project_id)
+    activity = _get_activity(project, activity_id)
 
-    for index, activity in enumerate(project.activities):
-        if activity.id == activity_id:
-            project.activities.pop(index)
-            return None
+    db.delete(activity)
+    db.commit()
 
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Activity not found",
-    )
+    return None

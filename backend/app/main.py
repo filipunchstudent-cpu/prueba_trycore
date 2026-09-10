@@ -2,7 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api import router
+from backend.app.database import Base, engine
+from backend.app.models import ActivityModel, ProjectModel
 
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="EVM Project Management API",
